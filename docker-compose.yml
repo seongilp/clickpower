@@ -1,0 +1,57 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./docker/clickhouse/init:/docker-entrypoint-initdb.d:ro
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  vector:
+    image: timberio/vector:latest-alpine
+    depends_on:
+      clickhouse: { condition: service_healthy }
+    volumes:
+      - ./docker/vector/vector.yaml:/etc/vector/vector.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      CLICKHOUSE_URL: http://clickhouse:8123
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      clickhouse: { condition: service_healthy }
+    environment:
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_WRITER_USER: default
+      CLICKHOUSE_WRITER_PASSWORD: ""
+      CLICKHOUSE_READER_USER: reader
+      CLICKHOUSE_READER_PASSWORD: ""
+    profiles: ["full"]
+
+  seed:
+    build: .
+    command: ["node", "scripts/seed.mjs"]
+    depends_on:
+      clickhouse: { condition: service_healthy }
+    environment:
+      CLICKHOUSE_URL: http://clickhouse:8123
+      SEED_RATE: "50"
+    profiles: ["demo"]
+
+volumes:
+  clickhouse-data:

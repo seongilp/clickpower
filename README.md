@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# clickpower
 
-## Getting Started
+ClickHouse-native log platform. A lightweight ELK replacement: **ClickHouse** does the storage and querying, `clickpower` is the UI (log explorer, dashboards, alerts) and a thin ingest layer. **Vector** ships your logs in.
 
-First, run the development server:
+> Status: early prototype. Discover (log exploration) works end to end. Dashboards, ingest endpoints and alerts are next.
+
+## Quick start (demo with fake logs)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose --profile demo --profile full up --build
+# → http://localhost:3000/discover
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The `demo` profile runs a generator that backfills an hour of logs and streams ~50/s.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Local development
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+docker compose up -d clickhouse          # ClickHouse on :8123 with schema + readonly user
+cp .env.example .env.local
+pnpm install
+pnpm seed -- --backfill=120 --rate=20 --once   # fake logs
+pnpm dev                                  # http://localhost:3000/discover
+pnpm test                                 # unit tests (DSL parser, SQL builders)
+pnpm e2e                                  # playwright, needs ClickHouse + seeded data
+```
 
-## Learn More
+## Search syntax
 
-To learn more about Next.js, take a look at the following resources:
+```
+level:error service:api "connection timeout" -host:web-3 http.status>=500 (region:us-east-1 OR region:eu-west-1)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Syntax | Meaning |
+|---|---|
+| `word`, `"a phrase"` | full-text on `message` (token index / ILIKE) |
+| `field:value`, `field:"v w"` | equality; `*` wildcard → LIKE |
+| `field>=n`, `<`, `<=`, `>`, `!=` | comparisons (numeric for `< > <= >=`) |
+| `-term`, `NOT term` | negation |
+| `a b`, `a AND b`, `a OR b`, `( … )` | boolean logic; AND binds tighter |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Unknown fields resolve to the `attributes` JSON column (`http.status` → `attributes.http.status`). Every user value is bound as a ClickHouse query parameter; nothing is string-concatenated into SQL. SQL mode runs as a read-only ClickHouse user with a row cap.
 
-## Deploy on Vercel
+## Architecture
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+Vector ──▶ ClickHouse ◀──▶ clickpower (Next.js: UI + /api/query/*)
+            clickpower.logs         DSL → SQL, param-bound
+            clickpower_meta.*       saved searches / dashboards / alerts (ReplacingMergeTree)
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Schema: `docker/clickhouse/init/01_schema.sql`. Core columns (`timestamp, level, service, host, message, trace_id, span_id`) plus `attributes JSON`.
+
+## Roadmap
+
+1. Discover: live tail, saved searches, autocomplete
+2. Dashboards (panels = saved DSL/SQL + chart type)
+3. Ingest: `POST /api/ingest` (JSON lines) and OTLP/HTTP logs; bundled Vector config for files/syslog/docker
+4. Alerts (query + threshold → webhook/Slack)
+
+## License
+
+Apache-2.0

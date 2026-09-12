@@ -1,0 +1,44 @@
+# Vector: ships docker container logs into ClickHouse.
+# Add `file` / `syslog` sources below as needed.
+sources:
+  docker:
+    type: docker_logs
+    exclude_containers: ["clickpower-vector", "clickpower-clickhouse"]
+
+transforms:
+  normalize:
+    type: remap
+    inputs: [docker]
+    source: |
+      raw = string!(.message)
+      parsed, err = parse_json(raw)
+      if err == null && is_object(parsed) {
+        . = merge(., object!(parsed))
+      }
+      .timestamp = format_timestamp!(to_timestamp(.timestamp) ?? now(), "%Y-%m-%d %H:%M:%S%.3f")
+      .level = downcase(to_string(.level) ?? "info")
+      .service = to_string(.service) ?? to_string(.container_name) ?? "unknown"
+      .host = to_string(.host) ?? get_hostname!()
+      .message = to_string(.message) ?? raw
+      .trace_id = to_string(.trace_id) ?? ""
+      .span_id = to_string(.span_id) ?? ""
+      known = ["timestamp","level","service","host","message","trace_id","span_id"]
+      attrs = {}
+      for_each(object!(.)) -> |k, v| {
+        if !includes(known, k) { attrs = set!(attrs, [k], v) }
+      }
+      . = { "timestamp": .timestamp, "level": .level, "service": .service, "host": .host,
+            "message": .message, "trace_id": .trace_id, "span_id": .span_id,
+            "attributes": encode_json(attrs) }
+
+sinks:
+  clickhouse:
+    type: clickhouse
+    inputs: [normalize]
+    endpoint: "${CLICKHOUSE_URL}"
+    database: clickpower
+    table: logs
+    skip_unknown_fields: true
+    date_time_best_effort: true
+    batch:
+      timeout_secs: 2

@@ -17,8 +17,8 @@ export async function GET(req: Request) {
   const given = url.searchParams.get("secret") ?? (auth?.startsWith("Bearer ") ? auth.slice(7) : null);
   if (given !== secret && given !== process.env.CRON_SECRET) return fail("unauthorized", 401);
 
-  const minutes = Math.min(Number(url.searchParams.get("minutes") ?? 10), 180);
-  const perSec = Math.min(Number(url.searchParams.get("rate") ?? 5), 50);
+  const minutes = Math.min(Number(url.searchParams.get("minutes") ?? process.env.DEMO_SEED_MINUTES ?? 180), 180);
+  const perSec = Math.min(Number(url.searchParams.get("rate") ?? process.env.DEMO_SEED_RATE ?? 3), 50);
   const to = Date.now();
   const rows = generateRange(to - minutes * 60_000, to, perSec) as unknown[];
   await writer().insert({ table: LOGS_TABLE, values: rows, format: "JSONEachRow" });

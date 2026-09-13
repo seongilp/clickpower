@@ -44,6 +44,10 @@ export async function handle(fn: () => Promise<Response>): Promise<Response> {
 }
 
 function sanitize(message: string): string {
+  if (/ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|socket hang up/i.test(message)) {
+    const url = process.env.CLICKHOUSE_URL ?? "http://localhost:8123";
+    return `Cannot reach ClickHouse at ${url}. Set CLICKHOUSE_URL (and reader/writer credentials) to point at a running server.`;
+  }
   // ClickHouse errors are useful to the user (they wrote the query); trim the noisy tail.
   return message.split("\n")[0].slice(0, 500);
 }

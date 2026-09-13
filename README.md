@@ -3,6 +3,8 @@
 ClickHouse-native log platform. A lightweight ELK replacement: **ClickHouse** does the storage and querying, `clickpower` is the UI (log explorer, dashboards, alerts) and a thin ingest layer. **Vector** ships your logs in.
 
 > Status: early prototype. Discover (log exploration) works end to end. Dashboards, ingest endpoints and alerts are next.
+>
+> **Site:** https://seongilp.github.io/clickpower/ · **Demo:** https://clickpower.vercel.app/discover (hosted ClickHouse not wired yet, so queries error until it is)
 
 ## Quick start (demo with fake logs)
 

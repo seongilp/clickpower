@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>clickpower — ClickHouse-native log platform</title>
+<meta name="description" content="A lightweight ELK replacement. ClickHouse does the heavy lifting; clickpower is the Kibana-grade UI, ingest layer and alerting on top." />
+<meta property="og:title" content="clickpower" />
+<meta property="og:description" content="ClickHouse-native log platform. A lightweight ELK replacement with a UI you actually want to use." />
+<meta property="og:image" content="https://seongilp.github.io/clickpower/assets/discover.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: oklch(0.155 0.012 255);
+    --bg-2: oklch(0.19 0.012 255);
+    --fg: oklch(0.93 0.008 90);
+    --muted: oklch(0.62 0.012 255);
+    --line: oklch(1 0 0 / 9%);
+    --amber: oklch(0.82 0.16 78);
+    --amber-ink: oklch(0.18 0.03 78);
+    --error: #ee5c4a; --warn: #f2b544; --info: #63a9e6; --debug: #7f8594; --fatal: #e359c5;
+    --sans: "IBM Plex Sans", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.55;
+    background-image: radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.82 0.16 78 / 8%), transparent 60%);
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  nav { display: flex; align-items: center; gap: 20px; height: 64px; border-bottom: 1px solid var(--line); }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-weight: 700; letter-spacing: .08em; text-decoration: none; }
+  .logo i { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; background: var(--amber); color: var(--amber-ink); font-style: normal; }
+  nav .links { margin-left: auto; display: flex; gap: 18px; font-family: var(--mono); font-size: 13px; }
+  nav .links a { color: var(--muted); text-decoration: none; }
+  nav .links a:hover { color: var(--fg); }
+
+  .hero { padding: 96px 0 56px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: end; }
+  .kicker { font-family: var(--mono); font-size: 12px; letter-spacing: .25em; text-transform: uppercase; color: var(--amber); margin-bottom: 20px; }
+  h1 { font-size: clamp(40px, 6vw, 68px); line-height: 1.02; letter-spacing: -0.03em; margin: 0 0 24px; font-weight: 600; }
+  h1 em { font-style: normal; color: var(--amber); }
+  .lead { font-size: 18px; color: var(--muted); max-width: 52ch; margin: 0 0 32px; }
+  .cta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { font-family: var(--mono); font-size: 13px; font-weight: 600; padding: 12px 18px; border-radius: 6px; text-decoration: none; border: 1px solid var(--line); background: var(--bg-2); transition: transform .12s, border-color .12s; }
+  .btn:hover { transform: translateY(-1px); border-color: oklch(1 0 0 / 25%); }
+  .btn.primary { background: var(--amber); color: var(--amber-ink); border-color: transparent; }
+  .query {
+    font-family: var(--mono); font-size: 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg-2);
+    padding: 18px 20px; box-shadow: 0 30px 60px -30px oklch(0 0 0 / 80%);
+  }
+  .query .bar { display: flex; gap: 10px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--line); margin-bottom: 12px; color: var(--muted); }
+  .query .bar b { color: var(--fg); font-weight: 500; }
+  .query .k { color: var(--info); } .query .v { color: var(--amber); } .query .s { color: var(--muted); }
+  .q-row { display: grid; grid-template-columns: 62px 44px 1fr; gap: 10px; padding: 5px 0; border-left: 2px solid transparent; padding-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-size: 12px; }
+  .q-row .lvl { font-size: 10px; font-weight: 700; letter-spacing: .1em; }
+  .q-row.error { border-color: var(--error); } .q-row.error .lvl { color: var(--error); }
+  .q-row.warn { border-color: var(--warn); } .q-row.warn .lvl { color: var(--warn); }
+  .q-row.info { border-color: var(--info); } .q-row.info .lvl { color: var(--info); }
+  .q-row mark { background: oklch(0.82 0.16 78 / 22%); color: oklch(0.95 0.1 78); border-radius: 2px; }
+  .q-stats { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); }
+  .q-stats b { color: var(--amber); font-weight: 500; }
+
+  .shot { margin: 40px 0 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg-2); box-shadow: 0 40px 80px -40px oklch(0 0 0 / 90%); }
+  .shot img { display: block; width: 100%; height: auto; }
+
+  section { padding: 80px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 13px; font-family: var(--mono); letter-spacing: .25em; text-transform: uppercase; color: var(--amber); margin: 0 0 28px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .cell { background: var(--bg); padding: 26px 24px; }
+  .cell h3 { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+  .cell p { margin: 0; color: var(--muted); font-size: 14px; }
+  .cell code { font-family: var(--mono); font-size: 12px; color: var(--amber); }
+
+  .arch { font-family: var(--mono); font-size: 13px; color: var(--muted); white-space: pre; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; padding: 22px 24px; background: var(--bg-2); line-height: 1.6; }
+  .arch b { color: var(--fg); font-weight: 500; }
+  pre.sh { font-family: var(--mono); font-size: 13px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; overflow-x: auto; margin: 0; }
+  pre.sh .c { color: var(--muted); } pre.sh .p { color: var(--amber); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .status { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 6px 12px; border-radius: 999px; margin-bottom: 20px; }
+  .status i { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 4px oklch(0.82 0.16 78 / 20%); }
+  footer { padding: 40px 0 60px; border-top: 1px solid var(--line); color: var(--muted); font-family: var(--mono); font-size: 12px; display: flex; gap: 20px; flex-wrap: wrap; }
+  footer a { color: var(--muted); }
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; padding-top: 56px; }
+    .grid, .two { grid-template-columns: 1fr; }
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .hero > * { animation: rise .6s cubic-bezier(.2,.8,.2,1) both; }
+  .hero > :nth-child(2) { animation-delay: .12s; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="logo" href="#"><i>⚡</i>CLICKPOWER</a>
+    <div class="links">
+      <a href="#features">features</a>
+      <a href="#quickstart">quick start</a>
+      <a href="https://github.com/seongilp/clickpower">github ↗</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <div class="status"><i></i> early prototype · Discover works end to end</div>
+      <div class="kicker">ClickHouse-native log platform</div>
+      <h1>The ELK stack, minus the <em>E</em>, the <em>L</em>, and the pain.</h1>
+      <p class="lead">ClickHouse already stores and queries logs better than Elasticsearch. What was missing is a UI you actually want to live in. clickpower is that UI, plus a thin ingest layer and alerting, in one container.</p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/seongilp/clickpower#quick-start-demo-with-fake-logs">docker compose up</a>
+        <a class="btn" href="https://github.com/seongilp/clickpower">View source</a>
+      </div>
+    </div>
+    <div class="query" aria-hidden="true">
+      <div class="bar">🔍 <b><span class="k">level</span>:<span class="v">error</span> <span class="k">service</span>:<span class="v">api</span> "deadlock" <span class="k">http.status</span>&gt;=<span class="v">500</span></b></div>
+      <div class="q-row error"><span>13:52:48</span><span class="lvl">ERROR</span><span>database <mark>deadlock</mark> detected (route=/health)</span></div>
+      <div class="q-row error"><span>13:52:46</span><span class="lvl">ERROR</span><span>database <mark>deadlock</mark> detected (route=/api/cart)</span></div>
+      <div class="q-row warn"><span>13:52:45</span><span class="lvl">WARN</span><span>slow request /api/orders took 1688ms</span></div>
+      <div class="q-row error"><span>13:52:43</span><span class="lvl">ERROR</span><span>database <mark>deadlock</mark> detected (route=/api/login)</span></div>
+      <div class="q-row info"><span>13:52:43</span><span class="lvl">INFO</span><span>POST /api/search 200 46ms</span></div>
+      <div class="q-stats">200 shown · <b>21</b> ms · 143,300 rows scanned · 12.6 MB</div>
+    </div>
+  </header>
+
+  <figure class="shot"><img src="assets/discover.png" alt="clickpower Discover: histogram, field sidebar, virtualized log table and detail panel" width="1440" height="900" /></figure>
+
+  <section id="features">
+    <h2>What you get</h2>
+    <div class="grid">
+      <div class="cell"><h3>Search that compiles to SQL</h3><p>KQL-style syntax — <code>level:error -host:web-3 http.status&gt;=500 (a OR b)</code> — parsed to an AST and compiled to <em>parameter-bound</em> ClickHouse SQL. Nothing is string-concatenated.</p></div>
+      <div class="cell"><h3>Click-to-filter everything</h3><p>Field sidebar with top values, JSON detail tree, trace jump, ±1 min context view. Every click edits the query and the URL, so any view is a shareable link.</p></div>
+      <div class="cell"><h3>Raw SQL when you want it</h3><p>Flip to SQL mode and run anything against a read-only ClickHouse user with a row cap. Query time and rows scanned are always on screen.</p></div>
+      <div class="cell"><h3>Schema-light</h3><p>Seven core columns plus a native <code>JSON</code> column. Unknown fields like <code>http.status</code> resolve to <code>attributes.http.status</code> automatically.</p></div>
+      <div class="cell"><h3>Bring logs with Vector</h3><p>Bundled Vector config ships docker, file and syslog logs straight into ClickHouse. JSON-lines and OTLP/HTTP endpoints are on the roadmap.</p></div>
+      <div class="cell"><h3>One dependency</h3><p>Dashboards, saved searches and alert rules live in ClickHouse too (<code>ReplacingMergeTree</code>). No Postgres, no Redis, no sidecars.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Architecture</h2>
+    <div class="arch"><b>Vector</b> ─────────────▶ <b>ClickHouse</b> ◀────────▶ <b>clickpower</b>  (Next.js: UI + /api/query/*)
+docker · file · syslog     clickpower.logs               DSL → SQL, param-bound, readonly user
+                           clickpower_meta.*             saved searches · dashboards · alerts</div>
+  </section>
+
+  <section id="quickstart">
+    <h2>Quick start</h2>
+    <div class="two">
+      <div>
+        <pre class="sh"><span class="c"># demo with a fake-log generator</span>
+git clone https://github.com/seongilp/clickpower
+cd clickpower
+docker compose --profile demo --profile full up --build
+<span class="c"># → http://localhost:3000/discover</span></pre>
+      </div>
+      <div>
+        <pre class="sh"><span class="c"># local development</span>
+docker compose up -d clickhouse
+pnpm install && cp .env.example .env.local
+pnpm seed -- --backfill=120 --rate=20 --once
+pnpm dev</pre>
+      </div>
+    </div>
+    <figure class="shot" style="margin-top:32px"><img src="assets/sql.png" alt="clickpower SQL mode" width="1440" height="900" loading="lazy" /></figure>
+  </section>
+
+  <footer>
+    <span>© 2026 clickpower · Apache-2.0</span>
+    <a href="https://github.com/seongilp/clickpower">github</a>
+    <a href="https://github.com/seongilp/clickpower/blob/main/README.md#search-syntax">search syntax</a>
+  </footer>
+</div>
+</body>
+</html>

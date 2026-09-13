@@ -25,6 +25,7 @@ pnpm seed -- --backfill=120 --rate=20 --once   # fake logs
 pnpm dev                                  # http://localhost:3000/discover
 pnpm test                                 # unit tests (DSL parser, SQL builders)
 pnpm e2e                                  # playwright, needs ClickHouse + seeded data
+pnpm bench                                # ClickHouse vs DuckDB on the same data
 ```
 
 ## Search syntax
@@ -52,6 +53,14 @@ Vector ──▶ ClickHouse ◀──▶ clickpower (Next.js: UI + /api/query/*)
 ```
 
 Schema: `docker/clickhouse/init/01_schema.sql`. Core columns (`timestamp, level, service, host, message, trace_id, span_id`) plus `attributes JSON`.
+
+## Why ClickHouse
+
+At a million rows the two engines trade blows — DuckDB is faster at sorting and range
+scans, ClickHouse is faster at JSON field access. The gap that matters opens up elsewhere:
+continuous inserts under concurrent reads, retention over weeks, and the volumes where
+skip indexes decide whether a query returns at all. Numbers and methodology in
+[docs/benchmark.md](docs/benchmark.md).
 
 ## Roadmap
 

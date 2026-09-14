@@ -56,11 +56,11 @@ Schema: `docker/clickhouse/init/01_schema.sql`. Core columns (`timestamp, level,
 
 ## Why ClickHouse
 
-At a million rows the two engines trade blows — DuckDB is faster at sorting and range
-scans, ClickHouse is faster at JSON field access. The gap that matters opens up elsewhere:
-continuous inserts under concurrent reads, retention over weeks, and the volumes where
-skip indexes decide whether a query returns at all. Numbers and methodology in
-[docs/benchmark.md](docs/benchmark.md).
+At a million rows DuckDB and ClickHouse trade blows and everything finishes under 16ms.
+At ten million the ranking flips: ClickHouse is 4x faster on full-text and 7x on JSON field
+access, because skip indexes and JSON subcolumns prune what DuckDB has to scan. Ten times
+the data costs ClickHouse 2.4-4.2x and DuckDB 4.7-6.6x. Numbers, methodology and the
+queries in [docs/benchmark.md](docs/benchmark.md).
 
 ## Roadmap
 

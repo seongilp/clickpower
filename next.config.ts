@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
     // cannot infer them; name them explicitly or the demo function ships without them.
     "/api/query/**": [
       "./demo/logs.parquet",
+      // chdb_node.node links libchdb at load time. Tracing follows the .node file
+      // but not its shared-library dependency, so name it. Matches files only:
+      // a glob that can land on the package directory makes Turbopack read it as a file.
+      "./node_modules/@chdb/*/libchdb.so",
+      "./node_modules/@chdb/*/libchdb.dylib",
     ],
   },
 };

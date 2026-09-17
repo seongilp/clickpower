@@ -28,6 +28,16 @@ pnpm e2e                                  # playwright, needs ClickHouse + seede
 pnpm bench                                # ClickHouse vs DuckDB on the same data
 ```
 
+## Pointing at a remote ClickHouse
+
+`scripts/setup-remote.mjs` applies the schema, creates the read-only user, seeds demo
+data and prints the env vars your deployment needs. Safe to re-run.
+
+```bash
+node scripts/setup-remote.mjs --url=https://host:8443 --password=secret
+node scripts/setup-remote.mjs --url=https://host:8443 --password=secret --vercel   # push to Vercel
+```
+
 ## Search syntax
 
 ```

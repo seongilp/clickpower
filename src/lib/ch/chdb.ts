@@ -29,10 +29,11 @@ let ready: Promise<ChdbSession> | null = null;
 async function loadModule(): Promise<ChdbModule> {
   try {
     return (await import("chdb")) as unknown as ChdbModule;
-  } catch {
+  } catch (e) {
+    const cause = e instanceof Error ? e.message : String(e);
     throw new Error(
-      "CLICKPOWER_ENGINE=chdb needs the optional `chdb` package. Install it, or unset " +
-        "CLICKPOWER_ENGINE to use a ClickHouse server over HTTP.",
+      "CLICKPOWER_ENGINE=chdb could not load the optional `chdb` package. Install it, or " +
+        `unset CLICKPOWER_ENGINE to use a ClickHouse server over HTTP. Cause: ${cause}`,
     );
   }
 }

@@ -4,7 +4,7 @@ ClickHouse-native log platform. A lightweight ELK replacement: **ClickHouse** do
 
 > Status: early prototype. Discover (log exploration) works end to end. Dashboards, ingest endpoints and alerts are next.
 >
-> **Site:** https://seongilp.github.io/clickpower/ · **Demo:** https://clickpower.vercel.app/discover (hosted ClickHouse not wired yet, so queries error until it is)
+> **Site:** https://seongilp.github.io/clickpower/ · **Live demo:** https://clickpower.vercel.app/discover
 
 ## Quick start (demo with fake logs)
 
@@ -27,6 +27,30 @@ pnpm test                                 # unit tests (DSL parser, SQL builders
 pnpm e2e                                  # playwright, needs ClickHouse + seeded data
 pnpm bench                                # ClickHouse vs DuckDB on the same data
 ```
+
+## Two engines
+
+`CLICKPOWER_ENGINE` selects where SQL runs. Both speak the same dialect and the same
+`{pN:Type}` parameter binding, so the query layer is identical either way.
+
+| value | engine | used for |
+|---|---|---|
+| `clickhouse` (default) | a ClickHouse server over HTTP, queried as a read-only user | real deployments |
+| `chdb` | ClickHouse embedded in the Node process via [chDB](https://github.com/chdb-io/chdb) | the hosted demo, and local runs with no server |
+
+Demo mode loads `demo/logs.parquet` into a MergeTree inside the chDB session at cold
+start (~1s locally) rather than querying the file directly, so skip indexes work and
+JSON paths become subcolumns. Timestamps are shifted forward at load so the fixture
+always looks current. Because an in-process engine has no read-only DB user behind it,
+SQL mode additionally denies the `file`/`url`/`s3` table functions and the system database.
+
+```bash
+pnpm demo:fixture                      # generate demo/logs.parquet (needs the optional chdb package)
+CLICKPOWER_ENGINE=chdb pnpm dev        # no ClickHouse server required
+```
+
+`chdb` is an optional dependency (~340 MB, platform-specific). Skip it with
+`pnpm install --no-optional` if you only ever talk to a real server.
 
 ## Pointing at a remote ClickHouse
 

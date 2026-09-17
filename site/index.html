@@ -107,7 +107,7 @@
 
   <header class="hero">
     <div>
-      <div class="status"><i></i> early prototype · Discover works end to end</div>
+      <div class="status"><i></i> early prototype · live demo runs ClickHouse in-process via chDB</div>
       <div class="kicker">ClickHouse-native log platform</div>
       <h1>The ELK stack, minus the <em>E</em>, the <em>L</em>, and the pain.</h1>
       <p class="lead">ClickHouse already stores and queries logs better than Elasticsearch. What was missing is a UI you actually want to live in. clickpower is that UI, plus a thin ingest layer and alerting, in one container.</p>
@@ -139,6 +139,7 @@
       <div class="cell"><h3>Schema-light</h3><p>Seven core columns plus a native <code>JSON</code> column. Unknown fields like <code>http.status</code> resolve to <code>attributes.http.status</code> automatically.</p></div>
       <div class="cell"><h3>Bring logs with Vector</h3><p>Bundled Vector config ships docker, file and syslog logs straight into ClickHouse. JSON-lines and OTLP/HTTP endpoints are on the roadmap.</p></div>
       <div class="cell"><h3>One dependency</h3><p>Dashboards, saved searches and alert rules live in ClickHouse too (<code>ReplacingMergeTree</code>). No Postgres, no Redis, no sidecars.</p></div>
+      <div class="cell"><h3>Runs without a server</h3><p>Set <code>CLICKPOWER_ENGINE=chdb</code> and ClickHouse runs inside the Node process via chDB, against a Parquet fixture. Same SQL, same bound parameters. That is what the live demo is.</p></div>
     </div>
   </section>
 

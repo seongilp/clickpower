@@ -12,8 +12,6 @@ const nextConfig: NextConfig = {
     // cannot infer them; name them explicitly or the demo function ships without them.
     "/api/query/**": [
       "./demo/logs.parquet",
-      "./node_modules/chdb/**",
-      "./node_modules/@chdb/**",
     ],
   },
 };

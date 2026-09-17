@@ -1,4 +1,5 @@
 import { writer } from "@/lib/ch/client";
+import { resolveEngine } from "@/lib/ch/driver";
 import { LOGS_TABLE } from "@/lib/ch/config";
 import { fail, ok } from "@/lib/api/respond";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -12,6 +13,8 @@ import { generateRange } from "../../../../../scripts/lib/generate.mjs";
 export async function GET(req: Request) {
   const secret = process.env.DEMO_SEED_SECRET;
   if (!secret) return fail("demo seeding disabled", 404);
+  // chDB serves a read-only fixture that already shifts itself to "now"; nothing to seed.
+  if (resolveEngine() === "chdb") return fail("demo seeding does not apply to the chdb engine", 409);
   const url = new URL(req.url);
   const auth = req.headers.get("authorization");
   const given = url.searchParams.get("secret") ?? (auth?.startsWith("Bearer ") ? auth.slice(7) : null);

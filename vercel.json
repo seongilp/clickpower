@@ -1,3 +1,4 @@
 {
+  "buildCommand": "node scripts/make-demo-fixture.mjs && next build",
   "crons": [{ "path": "/api/demo/seed", "schedule": "0 0 * * *" }]
 }

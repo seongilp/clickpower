@@ -47,3 +47,6 @@ playwright-report/
 
 # benchmark fixtures
 .bench/
+
+# demo fixture is generated at build time by scripts/make-demo-fixture.mjs
+demo/

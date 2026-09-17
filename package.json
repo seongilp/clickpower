@@ -12,7 +12,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "seed": "node scripts/seed.mjs",
     "e2e": "playwright test",
-    "bench": "node scripts/bench.mjs"
+    "bench": "node scripts/bench.mjs",
+    "demo:fixture": "node scripts/make-demo-fixture.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -49,5 +50,8 @@
     "typescript": "^5",
     "vitest": "^5.0.0"
   },
-  "packageManager": "pnpm@11.25.0"
+  "packageManager": "pnpm@11.25.0",
+  "optionalDependencies": {
+    "chdb": "^3.3.0"
+  }
 }

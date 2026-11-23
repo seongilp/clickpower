@@ -50,7 +50,7 @@
     "typescript": "^5",
     "vitest": "^5.0.0"
   },
-  "packageManager": "pnpm@11.25.0",
+  "packageManager": "pnpm@12.23.0",
   "optionalDependencies": {
     "chdb": "^3.3.0"
   }
